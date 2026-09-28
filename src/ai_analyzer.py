@@ -31,7 +31,7 @@ def analyze_resume_match(resume_text: str, job_description: str, api_key: str) -
 
     try:
         response = client.beta.chat.completions.parse(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful AI that analyzes resumes against job descriptions and outputs structured JSON data."},
                 {"role": "user", "content": prompt}
