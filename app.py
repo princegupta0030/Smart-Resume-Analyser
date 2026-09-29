@@ -87,15 +87,15 @@ def main():
     # Sidebar for API Key
     st.sidebar.title("⚙️ Configuration")
     api_key = st.sidebar.text_input(
-        "OpenAI API Key",
+        "Gemini API Key",
         type="password",
-        placeholder="sk-..."
+        placeholder="AIzaSy..."
     )
     st.sidebar.markdown(
-        "Get your API key from [OpenAI](https://platform.openai.com/account/api-keys)."
+        "Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)."
     )
     st.sidebar.markdown("---")
-    st.sidebar.caption("Data is processed in memory and sent directly to OpenAI.")
+    st.sidebar.caption("Data is processed in memory and sent directly to Google Gemini.")
 
     # Header
     st.markdown('<h1 class="cinematic-title">Smart Resume Analyzer</h1>', unsafe_allow_html=True)
@@ -129,7 +129,7 @@ def main():
     # Analysis Trigger
     if st.button("🚀 Analyze Match", type="primary", use_container_width=True):
         if not api_key:
-            st.error("Please enter your OpenAI API key in the sidebar.")
+            st.error("Please enter your Gemini API key in the sidebar.")
         elif not uploaded_file:
             st.warning("Please upload a resume file to proceed.")
         elif not job_description.strip():

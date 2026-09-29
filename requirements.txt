@@ -2,5 +2,5 @@ streamlit
 PyMuPDF
 python-docx
 pytest
-openai
+google-genai
 pydantic

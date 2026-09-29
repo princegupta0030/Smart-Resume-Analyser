@@ -1,7 +1,8 @@
 import json
 from typing import List
 from pydantic import BaseModel, Field
-from openai import OpenAI
+from google import genai
+from google.genai import types
 
 class MatchResult(BaseModel):
     score: int = Field(description="A score out of 100 representing how well the resume matches the job description.")
@@ -11,10 +12,10 @@ class MatchResult(BaseModel):
 
 def analyze_resume_match(resume_text: str, job_description: str, api_key: str) -> dict:
     """
-    Calls the OpenAI API to analyze the resume against the job description.
+    Calls the Gemini API to analyze the resume against the job description.
     Returns a dictionary containing the score, matched_skills, missing_skills, and explanation.
     """
-    client = OpenAI(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
     prompt = f"""
     You are an expert technical recruiter and resume analyzer.
@@ -30,18 +31,25 @@ def analyze_resume_match(resume_text: str, job_description: str, api_key: str) -
     """
 
     try:
-        response = client.beta.chat.completions.parse(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful AI that analyzes resumes against job descriptions and outputs structured JSON data."},
-                {"role": "user", "content": prompt}
-            ],
-            response_format=MatchResult,
-            temperature=0.2,
+        response = client.models.generate_content(
+            model='gemini-1.5-pro',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=MatchResult,
+                temperature=0.2,
+            ),
         )
 
-        result = response.choices[0].message.parsed
-        return result.model_dump()
+        # Parse the structured JSON response
+        text = response.text
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            # Fallback if extra text exists (as per knowledgebase gotcha)
+            data = json.loads(text[:e.pos])
+
+        return data
 
     except Exception as e:
-        raise Exception(f"Failed to analyze using OpenAI: {str(e)}")
+        raise Exception(f"Failed to analyze using Gemini: {str(e)}")
