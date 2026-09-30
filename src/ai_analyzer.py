@@ -15,7 +15,7 @@ def analyze_resume_match(resume_text: str, job_description: str, api_key: str) -
     Calls the Gemini API to analyze the resume against the job description.
     Returns a dictionary containing the score, matched_skills, missing_skills, and explanation.
     """
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key=api_key, http_options={'api_version': 'v1'})
 
     prompt = f"""
     You are an expert technical recruiter and resume analyzer.
