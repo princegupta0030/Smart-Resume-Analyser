@@ -31,12 +31,15 @@ def analyze_resume_match(resume_text: str, job_description: str, api_key: str) -
     """
 
     # List of fallback models to try if one is experiencing high demand
+    # Prioritize 3.8 and 3.7 series first as requested, then fallback to others.
     models_to_try = [
-        'gemini-3.5-flash-lite',
+        'gemini-3.8-flash',
+        'gemini-3.7-flash',
+        'gemini-3.6-flash',
         'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
         'gemini-flash-latest',
-        'gemini-flash-lite-latest',
-        'gemini-3.6-flash'
+        'gemini-flash-lite-latest'
     ]
 
     last_error = None
