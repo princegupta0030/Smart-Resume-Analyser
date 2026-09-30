@@ -211,9 +211,19 @@ def main():
                                 st.markdown(f"### {c_name}")
                                 if c_email != 'Unknown':
                                     st.markdown(f"📧 <a href='mailto:{c_email}'>{c_email}</a>", unsafe_allow_html=True)
+
+                                links = res.get('social_links', [])
+                                if links:
+                                    # Create a series of link badges
+                                    link_html = " ".join([f"<a href='{link}' target='_blank' style='display:inline-block; margin-right:8px; padding:2px 8px; background:rgba(0,210,255,0.2); border-radius:12px; color:#00d2ff; text-decoration:none; font-size:0.9rem;'>🔗 {link.split('//')[-1].split('/')[0]}</a>" for link in links])
+                                    st.markdown(f"<div style='margin-top: 8px;'>{link_html}</div>", unsafe_allow_html=True)
+                                else:
+                                    st.markdown("<div style='margin-top: 8px; color: #a0a0b0; font-size:0.9rem;'>No social links found</div>", unsafe_allow_html=True)
+
                             with col_score:
                                 st.markdown(f"<div style='text-align: right;'><span class='score-text' style='font-size:2.5rem;'>{score}%</span></div>", unsafe_allow_html=True)
 
+                            st.write("")
                             st.markdown("**AI Summary:** " + res.get('short_summary', ''))
 
                             mc, msc = st.columns(2)
@@ -237,6 +247,13 @@ def main():
                             st.markdown(f"#### {c_name} — {score}%")
                             if c_email != 'Unknown':
                                 st.markdown(f"📧 <a href='mailto:{c_email}'>{c_email}</a>", unsafe_allow_html=True)
+
+                            links = res.get('social_links', [])
+                            if links:
+                                link_html = " ".join([f"<a href='{link}' target='_blank' style='display:inline-block; margin-right:8px; padding:2px 8px; background:rgba(0,210,255,0.2); border-radius:12px; color:#00d2ff; text-decoration:none; font-size:0.8rem;'>🔗 {link.split('//')[-1].split('/')[0]}</a>" for link in links])
+                                st.markdown(f"<div style='margin-bottom: 8px;'>{link_html}</div>", unsafe_allow_html=True)
+                            else:
+                                st.markdown("<div style='margin-bottom: 8px; color: #a0a0b0; font-size:0.8rem;'>No social links found</div>", unsafe_allow_html=True)
 
                             st.write("**Matched:** " + (", ".join(res.get('matched_skills', [])) or "None"))
 
