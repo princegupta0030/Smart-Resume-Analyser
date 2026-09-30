@@ -8,7 +8,7 @@ def create_mock_pdf(text: str) -> bytes:
     doc = fitz.open()
     page = doc.new_page()
     page.insert_text((50, 50), text)
-    pdf_bytes = doc.write()
+    pdf_bytes = doc.tobytes()
     doc.close()
     return pdf_bytes
 
