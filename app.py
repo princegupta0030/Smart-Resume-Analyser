@@ -155,7 +155,7 @@ def main():
                         st.markdown(f'<p class="score-text">{results["score"]}%</p>', unsafe_allow_html=True)
                         st.markdown("<p style='text-align: center; color: #a0a0b0;'>Match Score</p>", unsafe_allow_html=True)
 
-                        st.progress(results['score'] / 100)
+                        st.progress(max(0.0, min(1.0, results['score'] / 100.0)))
 
                         st.markdown("---")
                         st.markdown("### 💡 AI Insights")

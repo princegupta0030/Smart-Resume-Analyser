@@ -8,7 +8,7 @@ This repository contains the foundational structure of the project. Advanced ana
 - Clean, professional Streamlit interface.
 - Resume upload supporting **PDF** and **DOCX** formats.
 - Parsing logic leveraging `PyMuPDF` and `python-docx` to extract text from resumes.
-- Basic validation and placeholder alerts indicating where skill extraction, matching, and scoring will happen.
+- Full AI integration using Gemini 1.5 Flash to extract skills, calculate match scores, and provide explanations.
 
 ## Project Structure
 ```text
