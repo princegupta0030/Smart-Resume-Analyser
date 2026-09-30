@@ -5,15 +5,17 @@ from google import genai
 from google.genai import types
 
 class MatchResult(BaseModel):
-    score: int = Field(description="A score out of 100 representing how well the resume matches the job description.")
+    candidate_name: str = Field(description="The full name of the candidate extracted from the resume. Use 'Unknown' if not found.")
+    candidate_email: str = Field(description="The email address of the candidate extracted from the resume. Use 'Unknown' if not found.")
+    match_score: int = Field(description="A score out of 100 representing how well the resume matches the job description.")
     matched_skills: List[str] = Field(description="A list of skills present in both the resume and the job description.")
     missing_skills: List[str] = Field(description="A list of skills required or preferred by the job description but missing from the resume.")
-    explanation: str = Field(description="A brief paragraph explaining the reasoning behind the score.")
+    short_summary: str = Field(description="A brief paragraph explaining the reasoning behind the score.")
 
 def analyze_resume_match(resume_text: str, job_description: str, api_key: str) -> dict:
     """
     Calls the Gemini API to analyze the resume against the job description.
-    Returns a dictionary containing the score, matched_skills, missing_skills, and explanation.
+    Returns a dictionary containing candidate_name, candidate_email, match_score, matched_skills, missing_skills, and short_summary.
     """
     client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
 
@@ -21,13 +23,14 @@ def analyze_resume_match(resume_text: str, job_description: str, api_key: str) -
     You are an expert technical recruiter and resume analyzer.
     Compare the following Resume text to the provided Job Description.
 
+    First, extract the candidate's name and email address from their resume.
+    Then, analyze how well the candidate's resume matches the job description.
+
     === Job Description ===
     {job_description}
 
     === Resume ===
     {resume_text}
-
-    Analyze how well the candidate's resume matches the job description.
     """
 
     # List of fallback models to try if one is experiencing high demand
