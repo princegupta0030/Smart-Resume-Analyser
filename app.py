@@ -2,6 +2,8 @@ import time
 import streamlit as st
 from src.resume_parser import extract_text
 from src.ai_analyzer import analyze_resume_match
+from src.ml_ranker import calculate_tfidf_similarity, calculate_embedding_similarity
+import pandas as pd
 
 def apply_custom_css():
     st.markdown(
@@ -143,6 +145,8 @@ def main():
 
             all_results = []
 
+            resume_texts_for_ml = []
+
             for i, uploaded_file in enumerate(uploaded_files):
                 status_text.write(f"Analyzing {uploaded_file.name} ({i+1}/{total_files})...")
                 try:
@@ -150,6 +154,7 @@ def main():
                     file_bytes = uploaded_file.read()
                     filename = uploaded_file.name
                     resume_text = extract_text(file_bytes, filename)
+                    resume_texts_for_ml.append(resume_text)
 
                     # 2. AI Analysis
 
@@ -169,9 +174,21 @@ def main():
 
                 except Exception as e:
                     st.error(f"Error processing {uploaded_file.name}: {e}")
+                    # Append empty string to maintain index alignment for ML rankers if AI fails
+                    resume_texts_for_ml.append("")
 
                 # Update progress
                 progress_bar.progress((i + 1) / total_files)
+
+            status_text.write("Running ML Ranking Models...")
+
+            # 3. Calculate ML Scores (TF-IDF & Embeddings)
+            tfidf_scores = calculate_tfidf_similarity(job_description, resume_texts_for_ml)
+            embedding_scores = calculate_embedding_similarity(job_description, resume_texts_for_ml)
+
+            for i, result in enumerate(all_results):
+                result['tfidf_score'] = tfidf_scores[i] if i < len(tfidf_scores) else 0
+                result['embedding_score'] = embedding_scores[i] if i < len(embedding_scores) else 0
 
             status_text.write("Analysis Complete!")
             st.write("---")
@@ -190,10 +207,11 @@ def main():
                 else:
                     low_matches.append(res)
 
-            tab1, tab2, tab3 = st.tabs([
+            tab1, tab2, tab3, tab4 = st.tabs([
                 f"🌟 Top Matches (>70%) [{len(top_matches)}]",
                 f"👍 Moderate (50-70%) [{len(moderate_matches)}]",
-                f"❌ Low Match (<50%) [{len(low_matches)}]"
+                f"❌ Low Match (<50%) [{len(low_matches)}]",
+                "📊 ML Ranking & Error Analysis"
             ])
 
             with tab1:
@@ -205,6 +223,8 @@ def main():
                             c_name = res.get('candidate_name', 'Unknown')
                             c_email = res.get('candidate_email', 'Unknown')
                             score = res.get('match_score', 0)
+                            tfidf = res.get('tfidf_score', 0)
+                            emb = res.get('embedding_score', 0)
 
                             col_info, col_score = st.columns([3, 1])
                             with col_info:
@@ -219,6 +239,8 @@ def main():
                                     st.markdown(f"<div style='margin-top: 8px;'>{link_html}</div>", unsafe_allow_html=True)
                                 else:
                                     st.markdown("<div style='margin-top: 8px; color: #a0a0b0; font-size:0.9rem;'>No social links found</div>", unsafe_allow_html=True)
+
+                                st.markdown(f"<p style='color: #a0a0b0; font-size:0.9rem; margin-top: 5px;'>🤖 AI Score: {score}% | 🧠 Embeddings: {emb}% | 🧮 TF-IDF: {tfidf}%</p>", unsafe_allow_html=True)
 
                             with col_score:
                                 st.markdown(f"<div style='text-align: right;'><span class='score-text' style='font-size:2.5rem;'>{score}%</span></div>", unsafe_allow_html=True)
@@ -243,8 +265,10 @@ def main():
                             c_name = res.get('candidate_name', 'Unknown')
                             c_email = res.get('candidate_email', 'Unknown')
                             score = res.get('match_score', 0)
+                            tfidf = res.get('tfidf_score', 0)
+                            emb = res.get('embedding_score', 0)
 
-                            st.markdown(f"#### {c_name} — {score}%")
+                            st.markdown(f"#### {c_name} — AI: {score}% | Emb: {emb}% | TF-IDF: {tfidf}%")
                             if c_email != 'Unknown':
                                 st.markdown(f"📧 <a href='mailto:{c_email}'>{c_email}</a>", unsafe_allow_html=True)
 
@@ -269,9 +293,83 @@ def main():
                     for res in sorted(low_matches, key=lambda x: x.get('match_score', 0), reverse=True):
                         c_name = res.get('candidate_name', 'Unknown')
                         c_email = res.get('candidate_email', 'Unknown')
+                        score = res.get('match_score', 0)
 
                         email_link = f"<a href='mailto:{c_email}'>{c_email}</a>" if c_email != 'Unknown' else "No email"
-                        st.markdown(f"- **{c_name}** | 📧 {email_link}", unsafe_allow_html=True)
+                        st.markdown(f"- **{c_name}** ({score}%) | 📧 {email_link}", unsafe_allow_html=True)
+
+            with tab4:
+                st.markdown("### Model Comparison & Precision@K Analysis")
+                st.write("Compare how Traditional NLP (TF-IDF), Semantic Vectors (Embeddings), and LLM-based analysis rank candidates.")
+
+                if all_results and len(all_results) > 0:
+                    # Prepare dataframe
+                    df_data = []
+                    for i, r in enumerate(all_results):
+                        df_data.append({
+                            "id": i,
+                            "Candidate": r.get('candidate_name', 'Unknown'),
+                            "LLM Score": r.get('match_score', 0),
+                            "Embedding Score": r.get('embedding_score', 0),
+                            "TF-IDF Score": r.get('tfidf_score', 0),
+                        })
+
+                    df = pd.DataFrame(df_data)
+
+                    # Sort arrays by their respective scores to get ranked index orders
+                    llm_ranked = df.sort_values(by="LLM Score", ascending=False)['id'].tolist()
+                    emb_ranked = df.sort_values(by="Embedding Score", ascending=False)['id'].tolist()
+                    tfidf_ranked = df.sort_values(by="TF-IDF Score", ascending=False)['id'].tolist()
+
+                    # Calculate Precision@K (where K is top 50% of candidates or at least 1)
+                    k = max(1, len(all_results) // 2)
+
+                    from src.ml_ranker import calculate_precision_at_k
+                    emb_pk = calculate_precision_at_k(llm_ranked, emb_ranked, k)
+                    tfidf_pk = calculate_precision_at_k(llm_ranked, tfidf_ranked, k)
+
+                    st.markdown(f"#### Evaluation Metrics (Precision@{k})")
+                    st.markdown(f"Using the LLM AI score as the Ground Truth, how accurately did the lightweight ML models predict the Top {k} candidates?")
+
+                    m1, m2 = st.columns(2)
+                    m1.metric(label=f"Embeddings Precision@{k}", value=f"{emb_pk:.0f}%")
+                    m2.metric(label=f"TF-IDF Precision@{k}", value=f"{tfidf_pk:.0f}%")
+
+                    st.write("---")
+
+                    # Sort by LLM Score for the main display table
+                    df_display = df.sort_values(by="LLM Score", ascending=False).drop(columns=['id']).reset_index(drop=True)
+
+                    st.dataframe(
+                        df_display,
+                        use_container_width=True,
+                        column_config={
+                            "LLM Score": st.column_config.ProgressColumn("LLM Score (Ground Truth)", format="%d%%", min_value=0, max_value=100),
+                            "Embedding Score": st.column_config.ProgressColumn("Embedding Score", format="%d%%", min_value=0, max_value=100),
+                            "TF-IDF Score": st.column_config.ProgressColumn("TF-IDF Score", format="%d%%", min_value=0, max_value=100),
+                        }
+                    )
+
+                    # Error Analysis
+                    st.markdown("#### Dynamic Error Analysis")
+                    discrepancies = []
+                    for i, row in df.iterrows():
+                        llm = row['LLM Score']
+                        emb = row['Embedding Score']
+                        tf = row['TF-IDF Score']
+                        if (llm - tf) > 30 and (emb - tf) > 30:
+                            discrepancies.append(f"**{row['Candidate']}**: TF-IDF scored very low ({tf}%) compared to AI ({llm}%). This implies the candidate has the right semantic skills but used completely different terminology than the JD (Vocabulary Mismatch).")
+                        elif (tf - llm) > 30:
+                            discrepancies.append(f"**{row['Candidate']}**: TF-IDF scored unusually high ({tf}%) while AI was low ({llm}%). This candidate likely 'keyword stuffed' the exact JD words but lacked actual context or experience.")
+
+                    if discrepancies:
+                        for d in discrepancies:
+                            st.warning(d)
+                    else:
+                        st.success("No major scoring anomalies detected between models.")
+
+                else:
+                    st.info("Upload resumes to see ranking comparison.")
 
 if __name__ == "__main__":
     main()
