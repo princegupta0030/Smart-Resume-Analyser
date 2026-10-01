@@ -1,0 +1,8 @@
+streamlit
+PyMuPDF
+python-docx
+pytest
+google-genai
+pydantic
+sentence-transformers
+scikit-learn
